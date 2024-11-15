@@ -6,29 +6,19 @@ Write-Host "Starting to process source files..."
 # Get the current directory where the script is running
 $rootPath = Get-Location
 
-# Load file types configuration
+# Load configurations
 $fileTypes = & "$PSScriptRoot\comment-types.ps1"
+$pathFilters = & "$PSScriptRoot\path-filters.ps1"
+. "$PSScriptRoot\filter-utils.ps1"  # Dot-source the utility functions
 
 if (-not $fileTypes) {
     Write-Error "Failed to load comment-types.ps1 configuration file"
     exit 1
 }
 
-# Function to check if a path contains 'vendor' directory
-function Test-IsVendorPath {
-    param (
-        [string]$Path
-    )
-    return $Path -match "\\vendor\\"
-}
-
-
-# Function to check if a path contains 'vendor' directory
-function Test-IsVendorPath {
-    param (
-        [string]$Path
-    )
-    return $Path -match "\\vendor\\"
+if (-not $pathFilters) {
+    Write-Error "Failed to load path-filters.ps1 configuration file"
+    exit 1
 }
 
 # Function to get relative path from root
@@ -38,6 +28,14 @@ function Get-RelativePath {
         [string]$RootPath
     )
     return $FullPath.Substring($RootPath.ToString().Length + 1).Replace("\", "/")
+}
+
+# Function to check if a path contains 'vendor' directory
+function Test-IsVendorPath {
+    param (
+        [string]$Path
+    )
+    return $Path -match "\\vendor\\"
 }
 
 # Function to get comment syntax for file extension
@@ -109,19 +107,27 @@ function Update-FileComment {
 # Get all source files recursively
 $extensions = $fileTypes.Values.extensions | ForEach-Object { $_ } | Select-Object -Unique
 $files = Get-ChildItem -Path $rootPath -Recurse -Include $extensions |
-    Where-Object { -not (Test-IsVendorPath $_.FullName) }
+    Where-Object { Test-ShouldProcessPath -Path $_.FullName -PathFilters $pathFilters }
 
 $totalFiles = $files.Count
 $processedFiles = 0
 $skippedFiles = 0
+$excludedFiles = 0
 
 Write-Host "Found $totalFiles files to process..."
 
 foreach ($file in $files) {
     try {
         $relativePath = Get-RelativePath $file.FullName $rootPath
-        Write-Host "Processing: $relativePath"
         
+        # Additional logging to show why files are being skipped
+        if (-not (Test-ShouldProcessPath -Path $file.FullName -PathFilters $pathFilters)) {
+            Write-Host "Skipping (excluded): $relativePath" -ForegroundColor Yellow
+            $excludedFiles++
+            continue
+        }
+        
+        Write-Host "Processing: $relativePath"
         Update-FileComment -FilePath $file.FullName -RelativePath $relativePath
         $processedFiles++
     }
@@ -134,5 +140,6 @@ foreach ($file in $files) {
 Write-Host "`nSummary:"
 Write-Host "Total files found: $totalFiles"
 Write-Host "Successfully processed: $processedFiles"
+Write-Host "Excluded by filters: $excludedFiles"
 Write-Host "Skipped/Failed: $skippedFiles"
 Write-Host "Done!"
