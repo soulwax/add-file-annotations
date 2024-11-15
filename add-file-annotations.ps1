@@ -1,6 +1,4 @@
-# Add-Path-Comments.ps1
-# Script to add relative path comments to source files
-
+# add-file-annotations.ps1
 $ErrorActionPreference = "Stop"
 
 Write-Host "Starting to process source files..."
@@ -8,75 +6,22 @@ Write-Host "Starting to process source files..."
 # Get the current directory where the script is running
 $rootPath = Get-Location
 
-# Define file types and their comment syntax
-$fileTypes = @{
-    # C-style comments
-    ".c"    = @{
-        extensions = @(".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hxx", ".inl", ".cs", ".java", ".js", ".jsx", ".ts", ".tsx", ".php", ".go", ".scala", ".swift", ".kt", ".rs")
-        prefix = "//"
-        suffix = ""
-    }
-    # Shell-style comments
-    ".sh"   = @{
-        extensions = @(".sh", ".bash", ".zsh", ".py", ".rb", ".pl", ".pm", ".tcl", ".yaml", ".yml", ".conf", ".gitignore", ".env", ".r", ".jl")
-        prefix = "#"
-        suffix = ""
-    }
-    # HTML-style comments
-    ".html" = @{
-        extensions = @(".html", ".htm", ".xml", ".svg", ".xaml")
-        prefix = "<!--"
-        suffix = "-->"
-    }
-    # Batch file comments
-    ".bat"  = @{
-        extensions = @(".bat", ".cmd")
-        prefix = "REM"
-        suffix = ""
-    }
-    # Lisp-style comments
-    ".lisp" = @{
-        extensions = @(".lisp", ".cl", ".el")
-        prefix = ";;"
-        suffix = ""
-    }
-    # Lua comments
-    ".lua"  = @{
-        extensions = @(".lua")
-        prefix = "--"
-        suffix = ""
-    }
-    # VB-style comments
-    ".vb"   = @{
-        extensions = @(".vb", ".vbs", ".bas")
-        prefix = "'"
-        suffix = ""
-    }
-    # Matlab/Octave comments
-    ".m"    = @{
-        extensions = @(".m", ".matlab")
-        prefix = "%"
-        suffix = ""
-    }
-    # Assembly comments
-    ".asm"  = @{
-        extensions = @(".asm", ".s", ".nasm")
-        prefix = ";"
-        suffix = ""
-    }
-    # Fortran comments
-    ".f90"  = @{
-        extensions = @(".f90", ".f95", ".f03", ".f08", ".for", ".f")
-        prefix = "!"
-        suffix = ""
-    }
-    # CSS comments
-    ".css"  = @{
-        extensions = @(".css", ".scss", ".sass", ".less")
-        prefix = "/*"
-        suffix = "*/"
-    }
+# Load file types configuration
+$fileTypes = & "$PSScriptRoot\comment-types.ps1"
+
+if (-not $fileTypes) {
+    Write-Error "Failed to load comment-types.ps1 configuration file"
+    exit 1
 }
+
+# Function to check if a path contains 'vendor' directory
+function Test-IsVendorPath {
+    param (
+        [string]$Path
+    )
+    return $Path -match "\\vendor\\"
+}
+
 
 # Function to check if a path contains 'vendor' directory
 function Test-IsVendorPath {
