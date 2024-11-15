@@ -1,4 +1,6 @@
-# add-file-annotations.ps1
+# main.ps1
+# Script to add relative path comments to source files
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "Starting to process source files..."
@@ -28,14 +30,6 @@ function Get-RelativePath {
         [string]$RootPath
     )
     return $FullPath.Substring($RootPath.ToString().Length + 1).Replace("\", "/")
-}
-
-# Function to check if a path contains 'vendor' directory
-function Test-IsVendorPath {
-    param (
-        [string]$Path
-    )
-    return $Path -match "\\vendor\\"
 }
 
 # Function to get comment syntax for file extension
